@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getExpenses, createExpense, createCategory } from "../services/api";
+import { getExpenses, createExpense, createCategory, fetchCategories } from "../services/api";
 import { Expense, ExpenseFormData } from "../types";
 import YearNavigation from "../components/YearNavigation";
 import { MonthNavigation } from "../components/MonthNavigation";
@@ -17,6 +17,8 @@ const HistoryPage: React.FC = () => {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+
+  const [categories, setCategories] = useState<{id: number, name: string}[]>([]);
 
   // Get year and month from URL params, default to current date if not provided
   const getInitialYearMonth = () => {
@@ -50,14 +52,16 @@ const HistoryPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchExpenses();
+    fetchData();
   }, [selectedYear, selectedMonth]);
 
-  const fetchExpenses = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       const data = await getExpenses(selectedYear, selectedMonth);
+      const categoriesData = await fetchCategories();
       setExpenses(data);
+      setCategories(categoriesData);
     } catch (error) {
       console.error("Error fetching expenses:", error);
     } finally {
@@ -79,27 +83,17 @@ const HistoryPage: React.FC = () => {
     try {
       await createExpense(data);
       setIsExpenseFormModalOpen(false);
-      fetchExpenses();
+      fetchData();
     } catch (error) {
       console.error("Error creating expense:", error);
       throw error;
     }
   };
 
-  const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return;
-    
-    setIsSubmittingCategory(true);
-    try {
-      await createCategory(newCategoryName);
-      setNewCategoryName("");
-      setIsCategoryModalOpen(false);
-      fetchExpenses(); 
-    } catch (error) {
-      console.error("Failed to create category:", error);
-    } finally {
-      setIsSubmittingCategory(false);
-    }
+  const handleAddCategory = async (name: string) => {
+    await createCategory(name);
+    setIsCategoryModalOpen(false);
+    fetchData(); 
   };
 
   // Calculate category breakdown
@@ -197,7 +191,7 @@ const HistoryPage: React.FC = () => {
             <div style={{ marginTop: "32px" }}>
               <CalendarExpenseTable
                 expenses={expenses}
-                onExpenseUpdated={fetchExpenses}
+                onExpenseUpdated={fetchData}
               />
             </div>
           </>
@@ -210,10 +204,22 @@ const HistoryPage: React.FC = () => {
         title="Add New Expense"
       >
         <ExpenseForm
+          categories={categories}
           onSubmit={handleAddExpense}
           onCancel={() => setIsExpenseFormModalOpen(false)}
         />
       </Modal>
+
+      <Modal
+      isOpen={isCategoryModalOpen}
+      onClose={() => setIsCategoryModalOpen(false)}
+      title="Add New Category"
+    >
+      <CategoryForm 
+        onSubmit={handleAddCategory} 
+        onCancel={() => setIsCategoryModalOpen(false)} 
+      />
+    </Modal>
     </div>
   );
 };
