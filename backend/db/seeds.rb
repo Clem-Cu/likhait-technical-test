@@ -121,6 +121,7 @@ current_date = start_date
 
 while current_date <= end_date
   # Generate 3-8 expenses per day (random for variety)
+  payers = ['John Doe']
   daily_expense_count = rand(3..8)
 
   daily_expense_count.times do
@@ -145,6 +146,7 @@ while current_date <= end_date
         description: template[:description],
         amount: amount,
         category: category,
+        payer_name: payers.sample,
         date: current_date,
         created_at: current_date,
         updated_at: current_date
